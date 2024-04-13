@@ -1,0 +1,114 @@
+seed: 2023
+distributed: True
+train_visualization_iter: 1000
+
+
+datasets:
+  train:
+    name: REDS
+    type: Film_train_dataset
+    dataroot_gt1: ./data/DAVIS_train/GT
+    dataroot_lq1: ./data/DAVIS_train/GT
+    dataroot_gt2: ./data/REDS/train_sharp
+    dataroot_lq2: ./data/REDS/train_sharp
+
+    is_train: true
+    num_frame: 11
+    gt_size: [240, 432]
+    scale: 1
+    interval_list: [1,2]
+    random_reverse: True
+    use_flip: false
+    use_rot: false
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 1
+    normalizing: true
+    texture_template: ./texture_template/noise_data
+
+  val:
+    name: restoration
+    type: Film_test_dataset
+    dataroot_gt: ./REDS4/degradation_gt_full
+    dataroot_lq: ./REDS4/degradation_lq_full
+    is_train: false
+    num_frame: 15
+#    gt_size: [240, 432]   ##support any resolution, none is for original resolution
+    crop_size: [60, 108]
+    scale: 1
+    interval_list: [1]
+    random_reverse: false
+    use_flip: false
+    use_rot: false
+    normalizing: true
+
+
+
+path:
+  pretrain_network_g: ./pretrained_models/DeepEnhancer/models/restore.pth
+  strict_load_g: true
+  resume_state: ~
+  root: ./DeepEnhancer
+
+
+trainer:
+  lr: 0.0001
+  flow_lr_mul: 0.125    #0.125
+  fix_flow: 50000000
+  gan_lr: 0.0002
+  beta1: 0.9
+  beta2: 0.99
+
+  G_adv_loss_weight: 0.01
+  D_adv_loss_weight: 1.0
+  pix_loss_weight: 1.0
+  flow_loss_weight: 1.0
+  perceptual_loss_weight: 1.0
+
+
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [ 0.9, 0.99 ]
+
+  scheduler:
+    type: CosineAnnealingRestartLR
+    periods: [ 200000, 200000, 200000, 200000 ]
+    restart_weights: [ 1, 0.5, 0.5, 0.5 ]
+    eta_min: !!float 1e-7
+
+  reset_periods: true
+
+  total_iter: 800000
+  warmup_iter: -1  # no warm up
+
+
+logger:
+  print_freq: 1000
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: false
+
+
+val:
+  val_freq: !!float 1e3
+  val_frame_num: 15
+  save_img: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      # crop_border: 0
+      # test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      # crop_border: 0
+      # test_y_channel: false
+
+
+
+
+
+
